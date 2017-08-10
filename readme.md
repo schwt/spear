@@ -7,10 +7,12 @@ Rating each user and item by iterating a behavior matrix.
 - item score: $\mathbf q = (q_1, \cdots, q_u, \cdots, q_N)^\top \in \mathbb R^N $
 - behavior matrix: $A = {A_{ui}} \in \mathbb R^{M\times N}$
 - in iteration $t$:
+
 $$
 \mathbf e^{(t)} = \frac 1 Z A \  \mathbf q^{(t-1)} \\
 \mathbf q^{(t)} = \frac 1 Z A^\top \  \mathbf e^{(t)}
 $$
+
 where $Z$ is for normalization. In this implementation, $Z$ takes the max value (inducing max score tobe 1).
 
 ## usage
