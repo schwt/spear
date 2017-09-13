@@ -21,10 +21,11 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
-
-#include "MyHash_map.h"
+#include "my_hash_map.h"
 
 typedef unsigned int UINT;
+typedef long long __int64;
+
 #define LOADBUF 1024*128
 
 template <class T>

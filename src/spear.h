@@ -13,7 +13,7 @@ public:
 private:
     bool ReadConfigFile(const char* cstr_config_file, const char* cstr_log_file);
 private:
-    CMyLogMessages cls_log_msg;         // 日志对象
+    Logger cls_log_msg;         // 日志对象
 
     //////////////////////////// new ///////////////////////////////
     // files
@@ -30,8 +30,8 @@ private:
     vector<MatrixInvert> vec_matrix_ivt_item_;
     vector<MatrixInvert> vec_matrix_ivt_user_;
 
-    vector<MatrixIndex> vec_matrix_idx_user_;    // A_ij索引 vec[cid]->pid,score
-    vector<MatrixIndex> vec_matrix_idx_item_;    // A_ji索引 vec[pid]->cid,score
+    vector<MatrixIndex> vec_matrix_idx_user_;    // A_ij索引 vec[uid]->pid,score
+    vector<MatrixIndex> vec_matrix_idx_item_;    // A_ji索引 vec[pid]->uid,score
     vector<float> vec_score_user_;
     vector<float> vec_score_item_;
     hash_map<int, int> hm_uid_;
@@ -40,9 +40,9 @@ private:
     vector<int> vec_pid_;
     size_t num_user_;
     size_t num_item_;
+    size_t top_num_;
     int iteration_;
     float stop_err_;
-    int top_num_;
 
     //////////////////////////// Defined in config.ini ///////////////////////////////
     int BUFFERCNT;

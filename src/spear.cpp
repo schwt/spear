@@ -1,7 +1,10 @@
 
 #include <limits.h>
 #include "spear.h"
-#include "utils.hpp"
+// #include "utils.hpp"
+
+#define Min(a, b) ( (a)<(b) ? (a):(b) )
+#define Max(a, b) ( (a)>(b) ? (a):(b) )
 
 bool CMP_BY_PSU(const DataNode& left, const DataNode& right) {
     return ((left.item_id  < right.item_id) ||
@@ -29,13 +32,13 @@ bool CSpear::Init(const char* s_f_config)
     cout << "config file path: " << s_f_config << endl;
     bool res = true;
 
-    if (!cls_log_msg.SetLogFilePath("./log.txt", "Spear")) return false;
+    if (!cls_log_msg.SetLogFile("./log.txt", "Spear")) return false;
     if (!ReadConfigFile(s_f_config, "./log.txt"))  {
-        cls_log_msg.LogMessages("ReadConfigFile", __LINE__, false);
+        cls_log_msg.log(__LINE__, false, "ReadConfigFile");
         return false;
     }
     else {
-        cls_log_msg.LogMessages("ReadConfigFile", __LINE__, true);
+        cls_log_msg.log(__LINE__, true, "ReadConfigFile");
     }
     return res;
 }
@@ -43,32 +46,25 @@ bool CSpear::Init(const char* s_f_config)
 //************* 读配置文件 *************//
 bool CSpear::ReadConfigFile(const char* s_f_config, const char* s_f_log)
 {
-    cls_log_msg.LogMessages("\n<<<<<<<<<<<<<<<ReadConfigFile>>>>>>>>>>>>>>>\n");
+    cls_log_msg.log("<<<<<<<<<<<<<<<ReadConfigFile>>>>>>>>>>>>>>>");
 
-    CReadConfig ReadConfig(s_f_log);
-    cout << "config file path: " << s_f_config << endl;
+    Config ReadConfig(s_f_config);
 
-    string s_temp     = "";
-    bool res      = true;
+    bool res = true;
 
-    if (!(res = ReadConfig.GetConfigStr("file", "train_data",  F_train_data_,  1024, s_f_config))) return res;
+    if (!(res = ReadConfig.ReadInto("file", "train_data",  F_train_data_))) return res;
     // 输出
-    if (!(res = ReadConfig.GetConfigStr("file", "user_score",  F_score_user_,  1024, s_f_config))) return res;
-    if (!(res = ReadConfig.GetConfigStr("file", "item_score",  F_score_item_,  1024, s_f_config))) return res;
-    if (!(res = ReadConfig.GetConfigStr("file", "top_user",  F_top_user_,  1024, s_f_config))) return res;
-    if (!(res = ReadConfig.GetConfigStr("file", "top_item",  F_top_item_,  1024, s_f_config))) return res;
+    if (!(res = ReadConfig.ReadInto("file", "user_score",  F_score_user_))) return res;
+    if (!(res = ReadConfig.ReadInto("file", "item_score",  F_score_item_))) return res;
+    if (!(res = ReadConfig.ReadInto("file", "top_user",  F_top_user_))) return res;
+    if (!(res = ReadConfig.ReadInto("file", "top_item",  F_top_item_))) return res;
     
-    if (!(res = ReadConfig.GetConfigStr("data", "BUFFERCNT", s_temp,  1024, s_f_config))) return res;
-    BUFFERCNT = atoi(s_temp.c_str());
-    if (!(res = ReadConfig.GetConfigStr("data", "SORTMEMSIZE", s_temp,  1024, s_f_config))) return res;
-    SORTMEMSIZE = atoi(s_temp.c_str());
+    if (!(res = ReadConfig.ReadInto("data", "BUFFERCNT", BUFFERCNT))) return res;
+    if (!(res = ReadConfig.ReadInto("data", "SORTMEMSIZE", SORTMEMSIZE))) return res;
 
-    if (!(res = ReadConfig.GetConfigStr("data", "iteration", s_temp,  1024, s_f_config))) return res;
-    iteration_ = atoi(s_temp.c_str());
-    if (!(res = ReadConfig.GetConfigStr("data", "stop_err", s_temp,  1024, s_f_config))) return res;
-    stop_err_ = atof(s_temp.c_str());
-    if (!(res = ReadConfig.GetConfigStr("data", "top_num", s_temp,  1024, s_f_config))) return res;
-    top_num_ = atoi(s_temp.c_str());
+    if (!(res = ReadConfig.ReadInto("data", "iteration", iteration_))) return res;
+    if (!(res = ReadConfig.ReadInto("data", "stop_err", stop_err_))) return res;
+    if (!(res = ReadConfig.ReadInto("data", "top_num", top_num_))) return res;
     
     return res;
 }
@@ -79,23 +75,23 @@ bool CSpear::Calc()
     bool res = true;
 
     res = SourceDataManage();
-    cls_log_msg.LogMessages("SourceDataManage", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "SourceDataManage");
     if (!res) return res;
 
     res = Train();
-    cls_log_msg.LogMessages("Train", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "Train");
     if (!res) return res;
 
     res = WriteScore();
-    cls_log_msg.LogMessages("WriteScore", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "WriteScore");
     if (!res) return res;
 
     res = WriteTopUser();
-    cls_log_msg.LogMessages("WriteTopUser", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "WriteTopUser");
     if (!res) return res;
 
     res = WriteTopItem();
-    cls_log_msg.LogMessages("WriteTopItem", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "WriteTopItem");
     if (!res) return res;
 
     cout << endl;
@@ -107,7 +103,7 @@ bool CSpear::Calc()
 //////////// 数据预处理 ////////////
 bool CSpear::SourceDataManage()
 {
-    cls_log_msg.LogMessages("\n==================SourceDataManage==================\n");
+    cls_log_msg.log("==================SourceDataManage==================");
     bool res = true;
     
     
@@ -115,20 +111,20 @@ bool CSpear::SourceDataManage()
     string f_temp_data_sorted = "../data/temp/data.sorted.dat";
 
     res = LoadData(f_temp_data);
-    cls_log_msg.LogMessages("Loaddata", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "Loaddata");
     if (!res) return res;
 
     cout << "\nSorting by pid/score/uid..." << endl;
     if(K_MergeFile<DataNode>(f_temp_data.c_str(),
                              f_temp_data_sorted.c_str(), CMP_BY_PSU,
                              SORTMEMSIZE) == -1) res = false;
-    cls_log_msg.LogMessages("K_MergeFile " + f_temp_data 
-                                  + " to " + f_temp_data_sorted, __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "K_MergeFile " + f_temp_data 
+                                  + " to " + f_temp_data_sorted);
     if (!res) return res;
 
 
     res = MakeMatrixP2U(f_temp_data_sorted);
-    cls_log_msg.LogMessages("MakeMatrixP2U", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "MakeMatrixP2U");
     if (!res) return res;
 
     cout << endl;
@@ -138,13 +134,13 @@ bool CSpear::SourceDataManage()
     if(K_MergeFile<DataNode>(f_temp_data.c_str(),
                              f_temp_data_sorted.c_str(),
                              CMP_BY_USP, SORTMEMSIZE) == -1) res = false;
-    cls_log_msg.LogMessages("K_MergeFile " + f_temp_data
-                                  + " to " + f_temp_data_sorted, __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "K_MergeFile " + f_temp_data
+                                  + " to " + f_temp_data_sorted);
     if (!res) return res;
 
 
     res = MakeMatrixU2P(f_temp_data_sorted);
-    cls_log_msg.LogMessages("MakeMatrixU2P", __LINE__, res);
+    cls_log_msg.log(__LINE__, res, "MakeMatrixU2P");
     if (!res) return res;
 
     cout << endl;
@@ -157,7 +153,7 @@ bool CSpear::SourceDataManage()
 // input text: "uid pid score"
 // output bin: DataNode
 bool CSpear::LoadData(const string& dst) {
-    cls_log_msg.LogMessages("\n-------------LoadData-------------\n");
+    cls_log_msg.log("-------------LoadData-------------");
     FILE *fp_dst = fopen(dst.c_str(), "wb");
     if (!fp_dst) {
         printf("error open file %s!\n", dst.c_str());
@@ -175,7 +171,14 @@ bool CSpear::LoadData(const string& dst) {
     hash_map<int,int>::iterator ith;
 
     while (getline (fin, line)) {
-        my_split(line, " ", vec);
+        stringUtils::split(line, " ", vec);
+        // my_split(line, " ", vec);
+        // printf("[%s]\n", line.c_str());
+        // for (size_t i = 0; i < vec.size(); i++) {
+        //     printf("(%s)", vec[i].c_str());
+        // }
+        // printf("\n");
+        // getchar();
         if (vec.size() != 3) continue;
         int user_id = atoi(vec[0].c_str());
         int item_id = atoi(vec[1].c_str());
@@ -229,7 +232,7 @@ bool CSpear::LoadData(const string& dst) {
 // input  bin: DataNode(sorted)
 // output bin: idx, ivt
 bool CSpear::MakeMatrixU2P(const string& f_src) {
-    cls_log_msg.LogMessages("\n-------------MakeMatrixU2P-------------\n");
+    cls_log_msg.log("-------------MakeMatrixU2P-------------");
     FILE* fp_src = fopen(f_src.c_str(), "rb");
     FILE* fp_ivt= fopen(F_matrix_ivt_item_.c_str(), "wb");
     int from = 0;
@@ -296,7 +299,7 @@ bool CSpear::MakeMatrixU2P(const string& f_src) {
 // input  bin: DataNode(sorted)
 // output bin: idx, ivt
 bool CSpear::MakeMatrixP2U(const string& f_src) {
-    cls_log_msg.LogMessages("\n-------------MakeMatrixP2U-------------\n");
+    cls_log_msg.log("-------------MakeMatrixP2U-------------");
     bool res = false;
     FILE* fp_src = fopen(f_src.c_str(), "rb");
     FILE* fp_ivt= fopen(F_matrix_ivt_user_.c_str(), "wb");
@@ -362,7 +365,7 @@ bool CSpear::MakeMatrixP2U(const string& f_src) {
 }
 
 bool CSpear::Train() {
-    cls_log_msg.LogMessages("\n-------------Train-------------\n");
+    cls_log_msg.log("-------------Train-------------");
     FILE* fp_ivt_item =  fopen(F_matrix_ivt_item_.c_str(),  "rb");
     FILE* fp_ivt_user =  fopen(F_matrix_ivt_user_.c_str(),  "rb");
     if (!fp_ivt_item || !fp_ivt_user) { printf("ERROR open file!\n"); return false;}
@@ -425,7 +428,7 @@ float CSpear::calc_rse(const vector<float>& vec1, const vector<float>& vec2) {
 }
 
 bool CSpear::WriteScore() {
-    cls_log_msg.LogMessages("\n-------------WriteScore-------------\n");
+    cls_log_msg.log("-------------WriteScore-------------");
     FILE *fp_user = fopen(F_score_user_.c_str(), "w");
     FILE *fp_item = fopen(F_score_item_.c_str(), "w");
     if (!fp_user || !fp_item) {
@@ -443,7 +446,7 @@ bool CSpear::WriteScore() {
 }
 
 bool CSpear::WriteTopUser() {
-    cls_log_msg.LogMessages("\n-------------WriteTopUser-------------\n");
+    cls_log_msg.log("-------------WriteTopUser-------------");
     
     vector<tNode> vec_buff;
     vec_buff.resize(num_user_);
@@ -458,7 +461,7 @@ bool CSpear::WriteTopUser() {
         printf("ERROR open file: %s\n", F_top_user_.c_str());
         return false;
     }
-    for (int i = 0; i < Min(top_num_, num_user_); i++) {
+    for (size_t i = 0; i < Min(top_num_, num_user_); i++) {
         fprintf(fp_dst, "%d\t%.10f\n", vec_buff[i].id, vec_buff[i].score);
     }
     fclose(fp_dst);
@@ -466,7 +469,7 @@ bool CSpear::WriteTopUser() {
 }
 
 bool CSpear::WriteTopItem() {
-    cls_log_msg.LogMessages("\n-------------WriteTopItem-------------\n");
+    cls_log_msg.log("-------------WriteTopItem-------------");
     
     vector<tNode> vec_buff;
     vec_buff.resize(num_item_);
@@ -481,7 +484,7 @@ bool CSpear::WriteTopItem() {
         printf("ERROR open file: %s\n", F_top_item_.c_str());
         return false;
     }
-    for (int i = 0; i < Min(top_num_, num_item_); i++) {
+    for (size_t i = 0; i < Min(top_num_, num_item_); i++) {
         fprintf(fp_dst, "%d\t%.10f\n", vec_buff[i].id, vec_buff[i].score);
     }
     fclose(fp_dst);

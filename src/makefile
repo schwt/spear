@@ -10,7 +10,7 @@ TARGET = spear
 
 all: $(TARGET)
 
-spear: spear.o main.o Timer.o
+spear: spear.o main.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LIB)
 
 %.o : %.cpp

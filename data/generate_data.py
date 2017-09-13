@@ -8,7 +8,7 @@
 import sys
 import random as rd
 
-output = "../data/train.txt"
+output = "train.txt"
 max_uid = 10000
 max_pid = 1000
 max_score = 10

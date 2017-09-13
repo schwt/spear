@@ -4,8 +4,8 @@ GCC = g++
 CC = gcc
 .SUFFIXES: .o .cpp .c
 
-OBJS = MyLogMessage.o ReadConfig.o
-	   
+OBJS = Logger.o Config.o Timer.o stringUtils.o
+
 
 all: ./a/libmylib.a
 
